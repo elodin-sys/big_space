@@ -9,6 +9,10 @@ use crate::{
 };
 use bevy::prelude::*;
 
+/// Component that prevents rotation from being propagated to children.
+#[derive(Component, Debug)]
+pub struct NoPropagateRot;
+
 /// Entities with this component will ignore the floating origin, and will instead propagate
 /// transforms normally.
 #[derive(Component, Debug, Reflect)]
@@ -84,7 +88,12 @@ pub fn propagate_transforms<P: GridPrecision>(
         (Without<GridCell<P>>, Without<Parent>),
     >,
     transform_query: Query<
-        (Ref<Transform>, &mut GlobalTransform, Option<&Children>),
+        (
+            Ref<Transform>,
+            &mut GlobalTransform,
+            Option<&Children>,
+            Option<&NoPropagateRot>,
+        ),
         (
             With<Parent>,
             Without<GridCell<P>>,
@@ -155,7 +164,12 @@ pub fn propagate_transforms<P: GridPrecision>(
 unsafe fn propagate_recursive<P: GridPrecision>(
     parent: &GlobalTransform,
     transform_query: &Query<
-        (Ref<Transform>, &mut GlobalTransform, Option<&Children>),
+        (
+            Ref<Transform>,
+            &mut GlobalTransform,
+            Option<&Children>,
+            Option<&NoPropagateRot>,
+        ),
         (
             With<Parent>,
             Without<GridCell<P>>,
@@ -166,7 +180,7 @@ unsafe fn propagate_recursive<P: GridPrecision>(
     entity: Entity,
 ) {
     let (global_matrix, children) = {
-        let Ok((transform, mut global_transform, children)) =
+        let Ok((transform, mut global_transform, children, no_propogate_rot)) =
             // SAFETY: This call cannot create aliased mutable references.
             //   - The top level iteration parallelizes on the roots of the hierarchy.
             //   - The caller ensures that each child has one and only one unique parent throughout the entire
@@ -197,7 +211,19 @@ unsafe fn propagate_recursive<P: GridPrecision>(
                 return;
             };
 
-        *global_transform = parent.mul_transform(*transform);
+        if no_propogate_rot.is_some() {
+            let (parent_scale, _, parent_translation) = parent.to_scale_rotation_translation();
+            let scale = parent_scale * transform.scale;
+            let translation = parent_translation + transform.translation;
+            let transform = Transform {
+                scale,
+                translation,
+                rotation: transform.rotation,
+            };
+            *global_transform = transform.into();
+        } else {
+            *global_transform = parent.mul_transform(*transform);
+        }
 
         (*global_transform, children)
     };
