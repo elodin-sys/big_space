@@ -5,6 +5,10 @@
 use crate::{precision::GridPrecision, FloatingOrigin, GridCell};
 use bevy::prelude::*;
 
+/// Component that prevents rotation from being propagated to children.
+#[derive(Component, Debug)]
+pub struct NoPropagateRot;
+
 /// Update [`GlobalTransform`] component of entities based on entity hierarchy and
 /// [`Transform`] component.
 pub fn propagate_transforms<P: GridPrecision>(
@@ -25,7 +29,15 @@ pub fn propagate_transforms<P: GridPrecision>(
         ),
         Without<Parent>,
     >,
-    transform_query: Query<(Ref<Transform>, &mut GlobalTransform, Option<&Children>), With<Parent>>,
+    transform_query: Query<
+        (
+            Ref<Transform>,
+            &mut GlobalTransform,
+            Option<&NoPropagateRot>,
+            Option<&Children>,
+        ),
+        With<Parent>,
+    >,
     parent_query: Query<(Entity, Ref<Parent>)>,
 ) {
     let origin_cell_changed = !origin_moved.is_empty();
@@ -84,7 +96,12 @@ pub fn propagate_transforms<P: GridPrecision>(
 unsafe fn propagate_recursive(
     parent: &GlobalTransform,
     transform_query: &Query<
-        (Ref<Transform>, &mut GlobalTransform, Option<&Children>),
+        (
+            Ref<Transform>,
+            &mut GlobalTransform,
+            Option<&NoPropagateRot>,
+            Option<&Children>,
+        ),
         With<Parent>,
     >,
     parent_query: &Query<(Entity, Ref<Parent>)>,
@@ -92,7 +109,7 @@ unsafe fn propagate_recursive(
     mut changed: bool,
 ) {
     let (global_matrix, children) = {
-        let Ok((transform, mut global_transform, children)) =
+        let Ok((transform, mut global_transform, no_propogate_rot, children)) =
             // SAFETY: This call cannot create aliased mutable references.
             //   - The top level iteration parallelizes on the roots of the hierarchy.
             //   - The caller ensures that each child has one and only one unique parent throughout the entire
@@ -125,7 +142,19 @@ unsafe fn propagate_recursive(
 
         changed |= transform.is_changed();
         if changed {
-            *global_transform = parent.mul_transform(*transform);
+            if no_propogate_rot.is_some() {
+                let (parent_scale, _, parent_translation) = parent.to_scale_rotation_translation();
+                let scale = parent_scale * transform.scale;
+                let translation = parent_translation + transform.translation;
+                let transform = Transform {
+                    scale,
+                    translation,
+                    rotation: transform.rotation,
+                };
+                *global_transform = transform.into();
+            } else {
+                *global_transform = parent.mul_transform(*transform);
+            }
         }
         (*global_transform, children)
     };
