@@ -34,7 +34,7 @@ pub fn update_debug_bounds<P: GridPrecision>(
         let translation = settings.grid_position(&cell, &Transform::IDENTITY);
         gizmos.cuboid(
             Transform::from_translation(translation).with_scale(scale),
-            Color::GREEN,
+            Color::srgb(0.0, 1.0, 0.0),
         )
     }
 }
