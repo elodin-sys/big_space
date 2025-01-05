@@ -86,7 +86,12 @@
 #![allow(clippy::type_complexity)]
 #![deny(missing_docs)]
 
-use bevy::{math::DVec3, prelude::*, reflect::GetTypeRegistration, transform::TransformSystem};
+use bevy::{
+    math::DVec3,
+    prelude::*,
+    reflect::{GetTypeRegistration, Typed},
+    transform::TransformSystem,
+};
 use propagation::propagate_transforms;
 use std::marker::PhantomData;
 use world_query::{GridTransformReadOnly, GridTransformReadOnlyItem};
@@ -133,7 +138,7 @@ impl<P: GridPrecision> FloatingOriginPlugin<P> {
     }
 }
 
-impl<P: GridPrecision + Reflect + FromReflect + TypePath + GetTypeRegistration> Plugin
+impl<P: GridPrecision + Reflect + FromReflect + TypePath + GetTypeRegistration + Typed> Plugin
     for FloatingOriginPlugin<P>
 {
     fn build(&self, app: &mut App) {
