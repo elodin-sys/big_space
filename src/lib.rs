@@ -152,7 +152,8 @@ impl<P: GridPrecision + Reflect + FromReflect + TypePath + GetTypeRegistration +
         .register_type::<Transform>()
         .register_type::<GlobalTransform>()
         .register_type::<GridCell<P>>()
-        .add_plugins(ValidParentCheckPlugin::<GlobalTransform>::default())
+        .register_type::<TransformTreeChanged>()
+        //.add_plugins(ValidChildOfCheckPlugin::<GlobalTransform>::default())
         .add_systems(
             PostStartup,
             (
@@ -301,7 +302,7 @@ pub struct FloatingOrigin;
 /// grid cell to reduce the size of the transform.
 pub fn recenter_transform_on_grid<P: GridPrecision>(
     settings: Res<FloatingOriginSettings>,
-    mut query: Query<(&mut GridCell<P>, &mut Transform), (Changed<Transform>, Without<Parent>)>,
+    mut query: Query<(&mut GridCell<P>, &mut Transform), (Changed<Transform>, Without<ChildOf>)>,
 ) {
     query
         .par_iter_mut()
@@ -329,7 +330,7 @@ pub fn update_global_from_grid<P: GridPrecision>(
         Query<(GridTransformReadOnly<P>, &mut GlobalTransform)>,
     )>,
 ) {
-    let (origin_cell, floating_origin) = origin.single();
+    let (origin_cell, floating_origin) = origin.single().expect("no origin");
 
     if origin_cell.is_changed() || floating_origin.is_changed() {
         let mut all_entities = entities.p1();
@@ -367,7 +368,7 @@ pub fn sync_simple_transforms<P: GridPrecision>(
         (&Transform, &mut GlobalTransform),
         (
             Changed<Transform>,
-            Without<Parent>,
+            Without<ChildOf>,
             Without<Children>,
             Without<GridCell<P>>,
         ),

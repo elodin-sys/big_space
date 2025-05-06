@@ -11,10 +11,10 @@ documentation = "https://docs.rs/crate/big_space/latest"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.15", default_features = false }
+bevy = { version = "0.16", default_features = false }
 
 [dev-dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     "bevy_winit",
     "default_font",
     "bevy_ui",

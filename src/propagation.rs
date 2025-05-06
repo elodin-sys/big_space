@@ -27,7 +27,7 @@ pub fn propagate_transforms<P: GridPrecision>(
             &mut GlobalTransform,
             Option<Ref<GridCell<P>>>,
         ),
-        Without<Parent>,
+        Without<ChildOf>,
     >,
     transform_query: Query<
         (
@@ -36,9 +36,9 @@ pub fn propagate_transforms<P: GridPrecision>(
             Option<&NoPropagateRot>,
             Option<&Children>,
         ),
-        With<Parent>,
+        With<ChildOf>,
     >,
-    parent_query: Query<(Entity, Ref<Parent>)>,
+    parent_query: Query<(Entity, Ref<ChildOf>)>,
 ) {
     let origin_cell_changed = !origin_moved.is_empty();
 
@@ -54,7 +54,7 @@ pub fn propagate_transforms<P: GridPrecision>(
 
         for (child, actual_parent) in parent_query.iter_many(children) {
             assert_eq!(
-                actual_parent.get(), entity,
+                actual_parent.parent(), entity,
                 "Malformed hierarchy. This probably means that your hierarchy has been improperly maintained, or contains a cycle"
             );
             // SAFETY:
@@ -102,9 +102,9 @@ unsafe fn propagate_recursive(
             Option<&NoPropagateRot>,
             Option<&Children>,
         ),
-        With<Parent>,
+        With<ChildOf>,
     >,
-    parent_query: &Query<(Entity, Ref<Parent>)>,
+    parent_query: &Query<(Entity, Ref<ChildOf>)>,
     entity: Entity,
     mut changed: bool,
 ) {
@@ -123,7 +123,7 @@ unsafe fn propagate_recursive(
             //   \   /
             //     D
             //
-            // D has two parents, B and C. If the propagation passes through C, but the Parent component on D points to B,
+            // D has two parents, B and C. If the propagation passes through C, but the ChildOf component on D points to B,
             // the above check will panic as the origin parent does match the recorded parent.
             //
             // Also consider the following case, where A and B are roots:
@@ -162,7 +162,7 @@ unsafe fn propagate_recursive(
     let Some(children) = children else { return };
     for (child, actual_parent) in parent_query.iter_many(children) {
         assert_eq!(
-            actual_parent.get(), entity,
+            actual_parent.parent(), entity,
             "Malformed hierarchy. This probably means that your hierarchy has been improperly maintained, or contains a cycle"
         );
         // SAFETY: The caller guarantees that `transform_query` will not be fetched

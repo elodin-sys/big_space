@@ -180,7 +180,7 @@ pub fn nearest_objects<T: GridPrecision>(
     objects: Query<(Entity, GridTransformReadOnly<T>, &Aabb)>,
     mut camera: Query<(&mut CameraController, GridTransformReadOnly<T>)>,
 ) {
-    let (mut camera, cam_pos) = camera.single_mut();
+    let (mut camera, cam_pos) = camera.single_mut().expect("no cam");
     let nearest_object = objects
         .iter()
         .map(|(entity, obj_pos, aabb)| {
