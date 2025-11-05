@@ -6,8 +6,8 @@ use bevy::{
     input::mouse::MouseMotion,
     math::{DQuat, DVec3},
     prelude::*,
-    render::primitives::Aabb,
-    transform::TransformSystem,
+    camera::primitives::Aabb,
+    transform::TransformSystems,
 };
 
 use crate::{
@@ -28,7 +28,7 @@ impl<P: GridPrecision> Plugin for CameraControllerPlugin<P> {
                     .before(camera_controller::<P>)
                     .run_if(|input: Res<CameraInput>| !input.defaults_disabled),
                 nearest_objects::<P>.before(camera_controller::<P>),
-                camera_controller::<P>.before(TransformSystem::TransformPropagate),
+                camera_controller::<P>.before(TransformSystems::Propagate),
             ),
         );
     }
@@ -152,7 +152,7 @@ impl CameraInput {
 /// Provides sensible keyboard and mouse input defaults
 pub fn default_camera_inputs(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut mouse_move: EventReader<MouseMotion>,
+    mut mouse_move: MessageReader<MouseMotion>,
     mut cam: ResMut<CameraInput>,
 ) {
     keyboard.pressed(KeyCode::KeyW).then(|| cam.forward -= 1.0);

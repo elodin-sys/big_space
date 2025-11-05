@@ -90,7 +90,7 @@ use bevy::{
     math::DVec3,
     prelude::*,
     reflect::{GetTypeRegistration, Typed},
-    transform::TransformSystem,
+    transform::TransformSystems,
 };
 use propagation::propagate_transforms;
 use std::marker::PhantomData;
@@ -162,7 +162,7 @@ impl<P: GridPrecision + Reflect + FromReflect + TypePath + GetTypeRegistration +
                     .in_set(RootGlobalTransformUpdates),
                 propagate_transforms::<P>.after(RootGlobalTransformUpdates),
             )
-                .in_set(TransformSystem::TransformPropagate),
+                .in_set(TransformSystems::Propagate),
         )
         .add_systems(
             PostUpdate,
@@ -172,7 +172,7 @@ impl<P: GridPrecision + Reflect + FromReflect + TypePath + GetTypeRegistration +
                     .in_set(RootGlobalTransformUpdates),
                 propagate_transforms::<P>.after(RootGlobalTransformUpdates),
             )
-                .in_set(TransformSystem::TransformPropagate),
+                .in_set(TransformSystems::Propagate),
         );
     }
 }
